@@ -16,9 +16,26 @@ const validateFavorite = Joi.object({
   favorite: Joi.boolean().required(),
 });
 
+const validateUser = Joi.object({
+  email: Joi.string()
+    .pattern(/^\w+([.-_]?\w+)*@\w+([.-_]?\w+)*(\.\w{2,3})+$/)
+    .required(),
+  password: Joi.string()
+    .min(8)
+    .pattern(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#\\$%\\^&\\*])(?=.{8,128})/
+    )
+    .required()
+    .messages({
+      'string.pattern.base':
+        'Must be at least 8 symbols, has 1 upper character, 1 number and one special symbol',
+    }),
+});
+
 const schemas = {
   validateFavorite,
   validateContacts,
+  validateUser,
 };
 
 module.exports = schemas;
