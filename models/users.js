@@ -9,6 +9,7 @@ const usersSchema = new Schema({
   email: {
     type: String,
     required: [true, 'Email is required'],
+    match: /^\w+([.-_]?\w+)*@\w+([.-_]?\w+)*(\.\w{2,3})+$/,
     unique: true,
   },
   subscription: {
@@ -21,6 +22,6 @@ const usersSchema = new Schema({
 
 usersSchema.post('save', handleMongooseError);
 
-const Users = model('Users', usersSchema);
+const User = model('Users', usersSchema);
 
-module.exports = Users;
+module.exports = User;
