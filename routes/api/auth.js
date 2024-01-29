@@ -7,15 +7,25 @@ const upload = require('../../middlewares/upload');
 
 const authRouter = express.Router();
 
-authRouter.post('/register', validate(schemas.validateUser), authController.register)
+authRouter.post(
+  '/register',
+  validate(schemas.validateUser),
+  authController.register
+);
 authRouter.post('/login', validate(schemas.validateUser), authController.login);
 authRouter.get('/current', authenticate, authController.getCurrent);
-authRouter.post('/logout', authenticate, authController.logout)
+authRouter.post('/logout', authenticate, authController.logout);
 authRouter.patch(
   '/avatar',
   authenticate,
   upload.single('avatar'),
   authController.updateAvatar
+);
+authRouter.get('/verify/:verificationToken', authController.resend);
+authRouter.post(
+  '/verify/',
+  validate(schemas.emailSchema),
+  authController.verify
 );
 
 module.exports = authRouter;

@@ -4,8 +4,10 @@ const User = require('../models/users');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const gravatar = require('gravatar');
-const path = require('path'); 
-const Jimp = require('jimp')
+const path = require('path');
+const Jimp = require('jimp');
+const { nanoid } = require('nanoid');
+const sendEmail = require('../services/sendEmail');
 
 const register = async (req, res) => {
   const { email, password } = req.body;
@@ -17,14 +19,27 @@ const register = async (req, res) => {
 
   const avatarUrl = 'https:' + gravatar.url(email);
   const hashedPassword = await bcrypt.hash(password, 10);
+  const verificationToken = nanoid();
 
-  const { email: userEmail, subscription } = await User.create({
+  const emailSettings = {
+    to: email,
+    subject: 'Verefication',
+    html: `<a href="${envsConfigs.baseURL}/api/auth/verify/${verificationToken}" target="_blank"> click to verify</a>`,
+  };
+
+  await sendEmail(emailSettings);
+
+  const newUser = await User.create({
     ...req.body,
     password: hashedPassword,
     avatarUrl,
+    verificationToken,
   });
 
-  res.status(201).json({ user: { userEmail, subscription } });
+  res.status(201).json({
+    name: newUser.name,
+    email: newUser.email,
+  });
 };
 
 const login = async (req, res) => {
@@ -67,14 +82,16 @@ const logout = async (req, res) => {
 
 const updateAvatar = async (req, res) => {
   const { _id, email } = req.user;
-  
+
   let avatarUrl = null;
   if (req.file) {
     const { path: tempUpload, originalname } = req.file;
-    
+
     const img = await Jimp.read(tempUpload);
-    img.resize(250, 250)
-    img.write(path.join(__dirname, '../', 'public', 'avatars', `${_id}_${originalname}`))
+    img.resize(250, 250);
+    img.write(
+      path.join(__dirname, '../', 'public', 'avatars', `${_id}_${originalname}`)
+    );
     avatarUrl = path.join(
       __dirname,
       '../',
@@ -85,9 +102,41 @@ const updateAvatar = async (req, res) => {
   } else {
     avatarUrl = 'https:' + gravatar.url(email);
   }
-  await User.findByIdAndUpdate(_id, {avatarUrl})
+  await User.findByIdAndUpdate(_id, { avatarUrl });
 
-  res.json({"avatarURL": `${avatarUrl}`});
+  res.json({ avatarURL: `${avatarUrl}` });
+};
+
+const verify = async (req, res) => {
+  const { verificationToken } = req.params;
+  const user = await User.findOne({ verificationToken });
+  if (!user) {
+    throw HttpError(401, 'Unauthorezed');
+  }
+
+  await User.findByIdAndUpdate(user.id, {
+    verificationToken: '',
+    isVerified: true,
+  });
+  res.json({ message: 'Verifed success' });
+};
+
+const resend = async (req, res) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw HttpError(404, 'not found');
+  }
+  if (user.isVerified) {
+    throw HttpError(400, 'User already is verified');
+  }
+  const emailSettings = {
+    to: email,
+    subject: 'Verefication',
+    html: `<a href="${envsConfigs.baseURL}/api/auth/verify/${user.verificationToken}" target="_blank"> click to verify</a>`,
+  };
+  await sendEmail(emailSettings);
+  res.json({ message: 'Message send' });
 };
 
 module.exports = {
@@ -96,4 +145,6 @@ module.exports = {
   getCurrent: controllerWrapper(getCurrent),
   logout: controllerWrapper(logout),
   updateAvatar: controllerWrapper(updateAvatar),
+  verify: controllerWrapper(verify),
+  resend: controllerWrapper(resend),
 };
