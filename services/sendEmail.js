@@ -1,8 +1,9 @@
-'use strict';
 const nodemailer = require('nodemailer');
 const envsConfigs = require('../configs/envsConfigs');
 
 const transporter = nodemailer.createTransport({
+  //   host: 'smtp.gmail.com',
+  //   port: 465,
   host: 'gmail',
   auth: {
     user: envsConfigs.email,

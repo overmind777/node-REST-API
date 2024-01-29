@@ -17,7 +17,7 @@ const register = async (req, res) => {
     throw HttpError(409, 'Email in use');
   }
 
-  const avatarUrl = 'https:' + gravatar.url(email);
+  const avatarUrl = gravatar.url(email);
   const hashedPassword = await bcrypt.hash(password, 10);
   const verificationToken = nanoid();
 
@@ -133,7 +133,7 @@ const resend = async (req, res) => {
   const emailSettings = {
     to: email,
     subject: 'Verefication',
-    html: `<a href="${envsConfigs.baseURL}/api/auth/verify/${user.verificationToken}" target="_blank"> click to verify</a>`,
+    html: `<a href="http://localhost:4000/api/auth/verify/${user.verificationToken}" target="_blank"> click to verify</a>`,
   };
   await sendEmail(emailSettings);
   res.json({ message: 'Message send' });
